@@ -1,0 +1,36 @@
+# Video:
+*.mp4
+#data
+*.xml
+#pack
+*.zip
+*.rar
+#data
+*.data
+*.tar.gz
+*.mat
+#pdf
+*.pdf
+#txt
+*.txt
+#image
+*.png
+*.jpg
+# compiled to C
+*.pyc
+
+
+*.vscode
+*.pkl
+#/Courses/2021Spring/STA5934TextMining/STA5934TextMining/Project/Final/data/*
+#/Courses/2021Spring/STA5934TextMining/STA5934TextMining/Project/NER_dataset/*
+
+#parameters
+*.pth
+*.ckpt
+
+#folders
+/Results/*
+/Oldwork-CSNN/*
+/Checkpoints/*
+/Benchmarks/*
