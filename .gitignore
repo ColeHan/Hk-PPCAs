@@ -16,6 +16,8 @@
 #image
 *.png
 *.jpg
+*.eps
+*.ai
 # compiled to C
 *.pyc
 

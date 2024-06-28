@@ -82,7 +82,8 @@ def HkPPCAs(num_labeled_per_class, q_ini, q_train, lda, num_iters, dataset_name,
         # savemat(addr_tr,
         #         {'feature': train_values.cpu().float().numpy(),
         #          'label': train_labels,
-        #          'original_id': train_ori_id.numpy()})
+        #          'original_id': train_ori_id.numpy(),
+        #          'unshuffled_dataset': train_set})
         # savemat(addr_val,
         #         {'feature': val_values.cpu().float().numpy(),
         #          'val_labels': val_labels})
@@ -162,7 +163,7 @@ def HkPPCAs(num_labeled_per_class, q_ini, q_train, lda, num_iters, dataset_name,
             std_val_values = np.std(val_data['feature'], axis=0)
             val_data['feature'] = (val_data['feature'] - m_val_values) / std_val_values / np.sqrt(d)
 
-            # train_ori_id = train_data['original_id'] # for data augmentation
+
 
             torch.save({'m_train_values': m_train_values,
                         'std_train_values': std_train_values,
@@ -184,6 +185,8 @@ def HkPPCAs(num_labeled_per_class, q_ini, q_train, lda, num_iters, dataset_name,
                                           list(train_data['label'][0]))
         val_values, val_labels = torch.tensor(val_data['feature'], dtype=torch.float), list(val_data['val_labels'][0])
         N = len(trainset)
+
+        train_ori_id = train_data['original_id']  # Task: for data augmentation
 
         # ## label by percentage
         # perc_labeled = 0.01
@@ -235,26 +238,146 @@ def HkPPCAs(num_labeled_per_class, q_ini, q_train, lda, num_iters, dataset_name,
         print('Require {} labeled per class. {} classes and {} labeled samples in current session\n'
               .format(num_labeled_per_class, num_new_cls, len(labeled_indices)))
 
-        ######################################################################
-        ## - Save labeled data information for augmentation
-        # addr='D:/FSU/Academic/Research/Hierarchical K-PPCAs/TempExample/DataAug_LabeledImageIds_afterShuffling.pth'
-        # labeled_original_ids=torch.from_numpy(train_ori_id[0,labeled_indices])
-        # torch.save({'unshuffled_dataset': train_set,
-        #             'original_id_train': train_ori_id,
-        #             'labeled_orginal_ids': labeled_original_ids}, addr)
-        ######################################################################
-
-        #### Task: initialization
-        print('Starting initialization')
 
         ## - Select labeled data for initialization
         xl = train_values[labeled_indices, :]  # dim: (num_labeled, d)
         yl = [train_labels[i] for i in labeled_indices]
-        xl = xl.to(device)
+        # xl = xl.to(device)
         print('Dimension of labeled data in current session:', xl.shape,
               '\nLength of list of labels:', len(yl))
         # all classes can be assigned for current session: num_cls
         num_cls: int = len(set(train_labels)) + num_prestored_cls  # num_prestored_cls=0
+
+
+        ## Task: introduce augmented data
+        ######################################################################
+        # - Save labeled data information for augmentation
+        # addr='D:/FSU/Academic/Research/Hierarchical K-PPCAs/TempExample/DataAug_LabeledImageIds_afterShuffling.pth' # Desktop
+        # addr='F:/Research/Hierarchical K-PPCAs/TempExample/DataAug_LabeledImageIds_afterShuffling.pth' # laptop
+        # labeled_original_ids=torch.from_numpy(train_ori_id[0,labeled_indices])
+        # torch.save({'unshuffled_dataset': train_data['unshuffled_dataset'],
+        #             'original_id_train': train_ori_id,
+        #             'labeled_orginal_ids': labeled_original_ids}, addr)
+        ######################################################################
+
+        ## - save labeled data information for augmentation
+        # addr='D:/FSU/Academic/Research/CSNN-Project/TestExamples/Test_DataAug_LabeledImages_Shuffling.pth'
+        # labeled_original_ids=torch.from_numpy(train_ori_id[0,labeled_indices])
+        # torch.save({'unshuffled_dataset': train_set,
+        #             'original_id_train': train_ori_id,
+        #             'labeled_orginal_ids': labeled_original_ids}, addr)
+
+        ### task: Load augmented labeled features
+        # ## - integrate features into a large feature
+        # Aug_alltr_feature_address = [os.getcwd() + '\\..\\..\\TestExamples\\AugmentedminiImageNet_alltrain_640_resnetx4_x10perimg\\']
+        # train_aug_set = modules.combine_augmented_features(Aug_alltr_feature_address, n_features=640) # for resnet x4
+        # train_aug_values=train_aug_set.values
+        # train_aug_labels=train_aug_set.labels # list
+        # addr_aug = 'D:/FSU/Academic/Research/CSNN-Project/TestExamples/Test_DataAug_AugmentedminiImageNet_80ratio_x10perimg_trainset_CLIP_resnetx4.mat'
+        # savemat(addr_aug,{'feature': train_aug_values.cpu().float().numpy(), 'label': train_aug_labels})
+
+        # miniImageNet
+        # addr_aug = 'D:/FSU/Academic/Research/CSNN-Project/TestExamples/Test_DataAug_AugmentedminiImageNet_80ratio_x10perimg_trainset_CLIP_resnetx4.mat'
+        # # addr_aug = 'F:/Research/CSNN-Project/TestExamples/Test_DataAug_AugmentedminiImageNet_80ratio_x10perimg_trainset_CLIP_resnetx4.mat'
+        # train_aug_data = loadmat(addr_aug)
+
+        # if cls_range[1]<501:
+        #     # addr_aug = 'D:/FSU/Academic/Research/CSNN-Project/TestExamples/AugmentedImageNet_alltrain_640_resnetx4_x10perimg/' \
+        #     #        'Test_DataAug_AugmentedImageNet_80ratio_x10perimg_trainset_CLIP_resnetx4_first500.mat'
+        #     addr_aug = 'D:/FSU/Academic/Research/CSNN-Project/TestExamples/' \
+        #            'Test_DataAug_AugmentedImageNet_80ratio_x10perimg_trainset_CLIP_resnetx4_first500.pth'
+        # else:
+        #     # addr_aug = 'D:/FSU/Academic/Research/CSNN-Project/TestExamples/AugmentedImageNet_alltrain_640_resnetx4_x10perimg/' \
+        #     #        'Test_DataAug_AugmentedImageNet_80ratio_x10perimg_trainset_CLIP_resnetx4_second500.mat'
+        #     addr_aug = 'D:/FSU/Academic/Research/CSNN-Project/TestExamples/' \
+        #                'Test_DataAug_AugmentedImageNet_80ratio_x10perimg_trainset_CLIP_resnetx4_second500.pth'
+        # # train_aug_data_half = loadmat(addr_aug)
+        # # train_aug_data_half = mat73.loadmat(addr_aug)
+        # train_aug_data_half = torch.load(addr_aug)
+        # if cls_range[1] < 501:
+        #     N_first500=len(train_aug_data_half['label'])
+
+
+        # addr_aug = 'D:/FSU/Academic/Research/CSNN-Project/TestExamples/AugmentedImageNet_alltrain_640_resnetx4_x10perimg/' \
+        #        'Test_DataAug_AugmentedImageNet_80ratio_x10perimg_trainset_CLIP_resnetx4_first500.mat'
+        addr_aug_1half = 'D:/FSU/Academic/Research/CSNN-Project/TestExamples/' \
+               'Test_DataAug_AugmentedImageNet_80ratio_x10perimg_trainset_CLIP_resnetx4_first500.pth'
+
+        # addr_aug = 'D:/FSU/Academic/Research/CSNN-Project/TestExamples/AugmentedImageNet_alltrain_640_resnetx4_x10perimg/' \
+        #        'Test_DataAug_AugmentedImageNet_80ratio_x10perimg_trainset_CLIP_resnetx4_second500.mat'
+        addr_aug_2half = 'D:/FSU/Academic/Research/CSNN-Project/TestExamples/' \
+                   'Test_DataAug_AugmentedImageNet_80ratio_x10perimg_trainset_CLIP_resnetx4_second500.pth'
+        # train_aug_data_half = loadmat(addr_aug)
+        # train_aug_data_half = mat73.loadmat(addr_aug)
+        train_aug_data_1half = torch.load(addr_aug_1half)
+        train_aug_data_2half = torch.load(addr_aug_2half)
+
+        N_first500=len(train_aug_data_1half['label'])
+
+
+        labeled_original_ids = train_ori_id[0, labeled_indices]
+        # labeled_original_ids = train_ori_id[labeled_indices]
+        xl_aug = torch.empty((0, xl.shape[1]))  # for resnet x4
+        yl_aug = []
+
+        aug_per_img = 10
+        # select_aug_per_img = 10
+        select_aug_per_img = 5
+
+        # for l_ori_id in labeled_original_ids:
+        #     start_aug_id = l_ori_id * aug_per_img
+        #     end_aug_id = (l_ori_id + 1) * aug_per_imgl_ori_id * aug_per_img + select_aug_per_img
+        #     xl_aug_1 = torch.tensor(train_aug_data['feature'], dtype=torch.float)[start_aug_id:end_aug_id]
+        #     xl_aug = torch.cat((xl_aug, xl_aug_1), dim=0)
+        #     yl_aug_1 = train_aug_data['label'][0][start_aug_id:end_aug_id]
+        #     yl_aug.extend(yl_aug_1)
+
+        # train_aug_feature_1half=torch.tensor(train_aug_data_1half['feature'], dtype=torch.float)
+        # train_aug_feature_2half=torch.tensor(train_aug_data_2half['feature'], dtype=torch.float)
+        x_all_aug=torch.cat((train_aug_data_1half['feature'],train_aug_data_2half['feature']),dim=0)
+        y_all_aug = train_aug_data_1half['label']
+        train_aug_label_2half = train_aug_data_2half['label']
+        y_all_aug.extend(train_aug_label_2half)
+        for l_ori_id in labeled_original_ids:
+            start_aug_id = l_ori_id * aug_per_img
+            end_aug_id = l_ori_id * aug_per_img + select_aug_per_img
+            xl_aug_1 = x_all_aug[start_aug_id:end_aug_id]
+            xl_aug = torch.cat((xl_aug, xl_aug_1), dim=0)
+            yl_aug_1 = y_all_aug[start_aug_id:end_aug_id]
+            yl_aug.extend(yl_aug_1)
+
+        ## - normalization for augmented and labeled train data
+        if session_id == 0:
+            ## normalization for train and val data
+            xl_aug = (xl_aug - m_train_values) / std_train_values / np.sqrt(d)
+            # xl_aug = torch.tensor(xl_aug, dtype=torch.float)
+        else:
+            xl_aug = (xl_aug - m_train_basesession) / std_train_basesession / np.sqrt(d)
+            # xl_aug = torch.tensor(xl_aug, dtype=torch.float)
+
+        ## - concatenate augmented labeled data to labeled data
+        ## - update trainset, xl, yl, labled_indices, N, num_batches
+        trainset.values = torch.cat((trainset.values, xl_aug), dim=0)
+        trainset.labels.extend(yl_aug)
+        trainset.len = len(trainset.labels)
+        trainset.original_id.extend([-1 for i in range(N, trainset.len)])
+
+        xl = torch.cat((xl, xl_aug), dim=0)
+        yl.extend(yl_aug)
+        labeled_indices.extend([i for i in range(N, trainset.len)])
+        N = len(trainset)
+
+        num_batches = math.ceil(len(trainset) / batch_size)
+        print('there are {} batches'.format(num_batches))
+        ### task//
+
+        ##############################################################################################
+
+
+        xl = xl.to(device)
+
+        #### Task: initialization
+        print('Starting initialization')
 
         ### Task: initialize PPCA parameters (mu,L,D2) for classes
         pi_ini = torch.tensor([1 / num_cls], device=device).repeat(num_cls).unsqueeze(-1)  # dim: (num_cls, 1)
@@ -526,12 +649,22 @@ def HkPPCAs(num_labeled_per_class, q_ini, q_train, lda, num_iters, dataset_name,
                     pos_scores_id=scores_batch[obs_id_in_class_k]>0
                     pos_scores=scores_batch[obs_id_in_class_k][pos_scores_id]
                     raves[k].add_scores(pos_scores)
-                    # add raw data for super class updating
-                    if k in not_full_raw_data_RAVEs_id:
-                        resp=raves[k].add_raw_data(x_batch[obs_id_in_class_k],assigned_y_batch[obs_id_in_class_k]) # sample 20 obs by default
-                        if resp=='full':
-                            not_full_raw_data_RAVEs_id.remove(k)
 
+                    # Add raw data for super class updating
+
+                    # # - without substitution of raw data with higher scores - Sampling
+                    # if k in not_full_raw_data_RAVEs_id:
+                    #     resp=raves[k].add_raw_data(x_batch[obs_id_in_class_k],assigned_y_batch[obs_id_in_class_k]) # sample 20 obs by default
+                    #     if resp=='full':
+                    #         not_full_raw_data_RAVEs_id.remove(k)
+
+                    # # - replace the raw data with high scores (low confidence)
+                    if k in not_full_raw_data_RAVEs_id:
+                        resp = raves[k].add_raw_data(x_batch[obs_id_in_class_k],
+                                                     assigned_y_batch[obs_id_in_class_k],
+                                                     scores=scores_batch[obs_id_in_class_k],
+                                                     highest_scores=True)  # keep 20 obs with the smallest scores by default
+                        # if resp == 'full', do nothing, because still need to replace low confidence raw data
 
 
                     # if time01_unlab_assign-time00_unlab>0.1:
@@ -558,42 +691,12 @@ def HkPPCAs(num_labeled_per_class, q_ini, q_train, lda, num_iters, dataset_name,
                 # time_1batch=time1-time0
                 # print('batch #{} ({} obs) time cost: {}'.format(batch_id,n_one_batch,time_1batch))
 
-                # ###################  Old Version  ####################################
-                # # mah_dist_to_sup_cls_X = torch.zeros((num_supcls,n_one_batch), device=device)
-                # candid_supcls_id_X = torch.zeros((num_candid_supcls, n_one_batch), dtype=torch.int)
-                # for obs1_id in range(n_one_batch):
-                #     ## Task: if labeled, assign to its label
-                #     if obs1_id in labeled_local_indices_1batch:
-                #         labeled_cls = train_labels[obs1_id]
-                #         raves[labeled_cls].add_onlyX(x_batch[obs1_id, :].unsqueeze(0).clone(), mxx_cpu=True)
-                #         continue
-                #
-                #     ## Task: find closest 4 super classes for each obs in this batch
-                #     mah_dist, eu_dist = super_classes.mahalanobis(x_batch[obs1_id])  # distance dim: num_supcls
-                #     # mah_dist_to_sup_cls_X[:,obs1_id]=mah_dist
-                #     _, candid_supcls_id = torch.topk(mah_dist, k=num_candid_supcls, largest=False)
-                #     candid_supcls_id_X[:, obs1_id] = candid_supcls_id
-                #
-                #     ## Task: find closest class from 4 candidate super classes
-                #     candid_cls_id = []
-                #     for candid_1supcls_id in candid_supcls_id.tolist():
-                #         candid_cls_id.extend(super_classes.supcls_cls_dict[candid_1supcls_id])
-                #     num_candid_cls = len(candid_cls_id)
-                #     score_obs1 = torch.zeros(num_candid_cls)
-                #     for ki, k in enumerate(candid_cls_id):
-                #         delta_candid_cls_k = delta[k].to(device)
-                #         try:
-                #             score_obs1[ki], _ = modules.score(x_batch[obs1_id], mu_online[k], delta_candid_cls_k, lda, t)
-                #         except:
-                #             print('ckpt')
-                #     score_obs1_minval, score_obs1_minid = torch.min(score_obs1, dim=0)
-                #     score_obs1_mincls = candid_cls_id[score_obs1_minid]
-                #     ## Task: add obs to its assigned class
-                #     raves[score_obs1_mincls].add_onlyX(x_batch[obs1_id, :].unsqueeze(0).clone(), mxx_cpu=True)
-                # ###########################################################################
 
-                # del score_k
-                del x_batch, score_obs1, mah_dist, eu_dist
+                del x_batch, mah_dist, eu_dist
+                try:
+                    del score_obs1
+                except:
+                    print('no score_obs1')
                 torch.cuda.empty_cache()
 
                 # score_X = torch.zeros((num_cls, num_one_batch), device=device)
@@ -921,8 +1024,8 @@ if __name__ == '__main__':
     num_runs = len(runs_seeds_list)
     num_iters = 5
 
-    feature_address = [os.getcwd() + '\\..\\Benchmarks\\ImageNet_CLIP\\']
-    checkpoint_folder_addr = os.getcwd() + '\\..\\Checkpoints\\'
+    feature_address = [os.getcwd() + '\\Benchmarks\\ImageNet_CLIP\\']
+    checkpoint_folder_addr = os.getcwd() + '\\Checkpoints\\'
     dataset_name = 'ImageNet_288x288'
     self_learner_name = 'CLIP_resnetx4'
 
